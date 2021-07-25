@@ -8,7 +8,7 @@ import ssl
 
 from aiohttp import web
 
-from aiortc import RTCPeerConnection, RTCSessionDescription
+from aiortc import RTCPeerConnection, RTCRtpSender, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRelay
 
 ROOT = os.path.dirname(__file__)
@@ -67,6 +67,14 @@ async def offer(request):
 
     # open media source
     audio, video = create_local_tracks(args.play_from)
+
+    # configure preferred codecs
+    if video:
+        transceiver = pc.addTransceiver("video")
+        capabilities = RTCRtpSender.getCapabilities("video")
+        preferences = list(filter(lambda x: x.name == "H264", capabilities.codecs))
+        preferences += list(filter(lambda x: x.name == "rtx", capabilities.codecs))
+        transceiver.setCodecPreferences(preferences)
 
     await pc.setRemoteDescription(offer)
     for t in pc.getTransceivers():
